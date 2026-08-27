@@ -1,0 +1,95 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - NODE_ENV=production
+      - BASE_URL=http://localhost:8080
+      - DATABASE_URL=postgresql://shortify:shortify_password@postgres:5432/shortify?schema=public
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://shortify:shortify_password@rabbitmq:5672
+      - JWT_ACCESS_SECRET=dev-access-secret-change-in-production-min-16-chars
+      - JWT_REFRESH_SECRET=dev-refresh-secret-change-in-production-min-16-chars
+      - JWT_ACCESS_EXPIRY=15m
+      - JWT_REFRESH_EXPIRY=7d
+      - RATE_LIMIT_AUTH_WINDOW_MS=900000
+      - RATE_LIMIT_AUTH_MAX=10
+      - RATE_LIMIT_URL_CREATE_WINDOW_MS=60000
+      - RATE_LIMIT_URL_CREATE_MAX=20
+      - RATE_LIMIT_REDIRECT_WINDOW_MS=1000
+      - RATE_LIMIT_REDIRECT_MAX=100
+      - RATE_LIMIT_GENERAL_WINDOW_MS=60000
+      - RATE_LIMIT_GENERAL_MAX=100
+      - CORS_ORIGIN=*
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: shortify
+      POSTGRES_PASSWORD: shortify_password
+      POSTGRES_DB: shortify
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shortify -d shortify"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: shortify
+      RABBITMQ_DEFAULT_PASS: shortify_password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:

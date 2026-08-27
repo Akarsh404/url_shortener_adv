@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shortify — URL Shortener</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface-2: #1a1a26;
+      --border: #2a2a3a;
+      --text: #e4e4ed;
+      --text-muted: #8888a4;
+      --accent: #6c5ce7;
+      --accent-hover: #7c6df7;
+      --success: #00d2a0;
+      --error: #ff4d6a;
+      --warning: #ffb84d;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 40px 20px; }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .status-bar {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .status-dot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .status-dot .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-dot .dot.down { background: var(--error); animation: none; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .form-row .form-group { flex: 1; }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input[type="text"], input[type="email"], input[type="password"], input[type="url"] {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: var(--accent); }
+
+    button {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover { background: var(--accent-hover); }
+    button:active { transform: scale(0.98); }
+
+    button.secondary {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+
+    button.secondary:hover { background: var(--border); }
+
+    button.danger { background: var(--error); }
+    button.danger:hover { background: #ff6680; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+
+    .result {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      word-break: break-all;
+      display: none;
+    }
+
+    .result.show { display: block; }
+
+    .result.success {
+      background: rgba(0, 210, 160, 0.1);
+      border: 1px solid rgba(0, 210, 160, 0.3);
+      color: var(--success);
+    }
+
+    .result.error {
+      background: rgba(255, 77, 106, 0.1);
+      border: 1px solid rgba(255, 77, 106, 0.3);
+      color: var(--error);
+    }
+
+    .short-url-display {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: var(--surface-2);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .short-url-display a {
+      flex: 1;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+
+    .short-url-display a:hover { text-decoration: underline; }
+
+    .copy-btn {
+      padding: 6px 14px;
+      font-size: 0.8rem;
+    }
+
+    .urls-list { list-style: none; }
+
+    .url-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .url-item:last-child { border-bottom: none; }
+
+    .url-meta { flex: 1; min-width: 0; }
+
+    .url-meta .code {
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.95rem;
+    }
+
+    .url-meta .original {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+      margin-top: 2px;
+    }
+
+    .url-meta .stats {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge.active { background: rgba(0, 210, 160, 0.15); color: var(--success); }
+    .badge.inactive { background: rgba(255, 77, 106, 0.15); color: var(--error); }
+
+    .auth-section { display: none; }
+    .auth-section.visible { display: block; }
+
+    .logged-in-as {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .logged-in-as span { color: var(--success); font-weight: 600; }
+
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .tab:hover:not(.active) { background: var(--surface-2); }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px;
+      color: var(--text-muted);
+    }
+
+    .loading { opacity: 0.6; pointer-events: none; }
+
+    @media (max-width: 480px) {
+      .form-row { flex-direction: column; }
+      .url-item { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ Shortify</h1>
+      <p>Production-quality URL shortener</p>
+      <div class="status-bar" id="statusBar"></div>
+    </header>
+
+    <!-- Auth Section (Login/Register) -->
+    <div id="authSection" class="auth-section visible">
+      <div class="tab-bar">
+        <button class="tab active" onclick="showTab('login')">Login</button>
+        <button class="tab" onclick="showTab('register')">Register</button>
+      </div>
+
+      <div id="loginForm" class="card">
+        <h2>Login</h2>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+        <button onclick="login()">Sign In</button>
+        <div class="result" id="loginResult"></div>
+      </div>
+
+      <div id="registerForm" class="card" style="display:none">
+        <h2>Register</h2>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password <span style="color:var(--text-muted);font-weight:400">(min 8 chars, upper + lower + digit)</span></label>
+          <input type="password" id="regPassword" placeholder="StrongPassword123!">
+        </div>
+        <button onclick="register()">Create Account</button>
+        <div class="result" id="registerResult"></div>
+      </div>
+    </div>
+
+    <!-- Main App (after login) -->
+    <div id="appSection" class="auth-section">
+      <div class="logged-in-as">
+        Logged in as <span id="userEmail"></span>
+        <button class="secondary" style="margin-left:12px;padding:4px 12px;font-size:0.8rem" onclick="logout()">Logout</button>
+      </div>
+
+      <!-- Shorten URL -->
+      <div class="card">
+        <h2>Shorten a URL</h2>
+        <div class="form-group">
+          <label>URL to shorten</label>
+          <input type="url" id="originalUrl" placeholder="https://example.com/very/long/path">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Custom alias (optional)</label>
+            <input type="text" id="customAlias" placeholder="my-link">
+          </div>
+          <div class="form-group">
+            <label>Expires at (optional)</label>
+            <input type="text" id="expiresAt" placeholder="2026-12-31T23:59:59Z">
+          </div>
+        </div>
+        <button onclick="shortenUrl()">Shorten</button>
+        <div class="result" id="shortenResult"></div>
+        <div class="short-url-display" id="shortUrlDisplay" style="display:none">
+          <a id="shortUrlLink" href="#" target="_blank"></a>
+          <button class="copy-btn" onclick="copyUrl()">Copy</button>
+        </div>
+      </div>
+
+      <!-- My URLs -->
+      <div class="card">
+        <h2>My URLs</h2>
+        <button class="secondary" onclick="loadUrls()" style="margin-bottom:16px;font-size:0.85rem;padding:6px 16px">Refresh</button>
+        <ul class="urls-list" id="urlsList">
+          <li class="empty-state">No URLs yet. Shorten one above!</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let accessToken = '';
+    let refreshToken = '';
+    let currentEmail = '';
+
+    // --- Health Check ---
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${API}/health`);
+        const data = await res.json();
+        const bar = document.getElementById('statusBar');
+        bar.innerHTML = ['database', 'redis', 'rabbitmq'].map(s => {
+          const up = data.checks[s]?.status === 'up';
+          return `<div class="status-dot"><span class="dot ${up ? '' : 'down'}"></span>${s}${up && data.checks[s].latencyMs ? ` (${data.checks[s].latencyMs}ms)` : ''}</div>`;
+        }).join('');
+      } catch { /* ignore */ }
+    }
+    checkHealth();
+    setInterval(checkHealth, 30000);
+
+    // --- Tabs ---
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+    }
+
+    // --- Auth ---
+    async function apiFetch(path, opts = {}) {
+      const headers = { 'Content-Type': 'application/json', ...opts.headers };
+      if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+      const res = await fetch(`${API}${path}`, { ...opts, headers });
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
+    }
+
+    function showResult(id, msg, type) {
+      const el = document.getElementById(id);
+      el.className = `result show ${type}`;
+      el.textContent = msg;
+    }
+
+    async function register() {
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+      if (!email || !password) return showResult('registerResult', 'Fill in all fields', 'error');
+
+      const { res, data } = await apiFetch('/api/v1/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (res.ok) {
+        showResult('registerResult', '✓ Account created! Switch to Login tab.', 'success');
+      } else {
+        showResult('registerResult', data.error?.message || 'Registration failed', 'error');
+      }
+    }
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      if (!email || !password) return showResult('loginResult', 'Fill in all fields', 'error');
+
+      const { res, data } = await apiFetch('/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (res.ok) {
+        accessToken = data.data.accessToken;
+        refreshToken = data.data.refreshToken;
+        currentEmail = email;
+        document.getElementById('userEmail').textContent = email;
+        document.getElementById('authSection').classList.remove('visible');
+        document.getElementById('appSection').classList.add('visible');
+        loadUrls();
+      } else {
+        showResult('loginResult', data.error?.message || 'Login failed', 'error');
+      }
+    }
+
+    async function logout() {
+      await apiFetch('/api/v1/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      });
+      accessToken = '';
+      refreshToken = '';
+      document.getElementById('appSection').classList.remove('visible');
+      document.getElementById('authSection').classList.add('visible');
+    }
+
+    // --- URLs ---
+    async function shortenUrl() {
+      const originalUrl = document.getElementById('originalUrl').value;
+      if (!originalUrl) return showResult('shortenResult', 'Enter a URL', 'error');
+
+      const body = { originalUrl };
+      const alias = document.getElementById('customAlias').value;
+      const expires = document.getElementById('expiresAt').value;
+      if (alias) body.customAlias = alias;
+      if (expires) body.expiresAt = expires;
+
+      const { res, data } = await apiFetch('/api/v1/urls', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        showResult('shortenResult', '✓ URL shortened!', 'success');
+        const display = document.getElementById('shortUrlDisplay');
+        const link = document.getElementById('shortUrlLink');
+        display.style.display = 'flex';
+        link.href = data.data.shortUrl;
+        link.textContent = data.data.shortUrl;
+        document.getElementById('originalUrl').value = '';
+        document.getElementById('customAlias').value = '';
+        document.getElementById('expiresAt').value = '';
+        loadUrls();
+      } else {
+        showResult('shortenResult', data.error?.message || 'Failed to shorten', 'error');
+        document.getElementById('shortUrlDisplay').style.display = 'none';
+      }
+    }
+
+    function copyUrl() {
+      const url = document.getElementById('shortUrlLink').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+      });
+    }
+
+    async function loadUrls() {
+      const { res, data } = await apiFetch('/api/v1/urls?limit=50&sort=createdAt&order=desc');
+      const list = document.getElementById('urlsList');
+
+      if (!res.ok || !data.data?.length) {
+        list.innerHTML = '<li class="empty-state">No URLs yet. Shorten one above!</li>';
+        return;
+      }
+
+      list.innerHTML = data.data.map(u => `
+        <li class="url-item">
+          <div class="url-meta">
+            <span class="code">${u.shortUrl || u.shortCode}</span>
+            ${u.customAlias ? ` <span style="color:var(--warning);font-size:0.8rem">(${u.customAlias})</span>` : ''}
+            <span class="original">${u.originalUrl}</span>
+            <span class="stats">
+              <span class="badge ${u.isActive ? 'active' : 'inactive'}">${u.isActive ? 'Active' : 'Inactive'}</span>
+              ${u.expiresAt ? ` · Expires ${new Date(u.expiresAt).toLocaleDateString()}` : ''}
+              · Created ${new Date(u.createdAt).toLocaleDateString()}
+            </span>
+          </div>
+          <div>
+            <button class="secondary" style="font-size:0.75rem;padding:4px 10px;margin:2px" onclick="viewAnalytics('${u.id}')">Analytics</button>
+            <button class="danger" style="font-size:0.75rem;padding:4px 10px;margin:2px" onclick="deleteUrl('${u.id}')">Delete</button>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    async function deleteUrl(id) {
+      if (!confirm('Delete this URL?')) return;
+      await apiFetch(`/api/v1/urls/${id}`, { method: 'DELETE' });
+      loadUrls();
+    }
+
+    async function viewAnalytics(id) {
+      const { res, data } = await apiFetch(`/api/v1/urls/${id}/analytics`);
+      if (res.ok) {
+        alert(`Analytics:\n\nTotal clicks: ${data.data.totalClicks}\nLast 24h: ${data.data.clicksLast24Hours}\nLast 7d: ${data.data.clicksLast7Days}\nLast 30d: ${data.data.clicksLast30Days}`);
+      } else {
+        alert(data.error?.message || 'Failed to load analytics');
+      }
+    }
+  </script>
+</body>
+</html>

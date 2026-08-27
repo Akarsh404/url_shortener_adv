@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.env
+.git
+.gitignore
+*.md
+tests
+.eslintrc.js
+.prettierrc
+.prettierignore
+jest.config.js
+docker-compose.yml
+k6
