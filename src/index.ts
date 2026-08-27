@@ -1,0 +1,55 @@
+/**
+ * Vercel Serverless Function entry point.
+ *
+ * Exports the Express app for Vercel's serverless environment.
+ * Infrastructure connections are lazily initialized on first request.
+ *
+ * Limitations vs. traditional server (server.ts):
+ * - No persistent RabbitMQ consumer (no long-running process)
+ * - Each request is a cold/warm function invocation
+ */
+
+import { createApp } from './app';
+import { connectDatabase } from './infrastructure/database/prisma.client';
+import { redisClient } from './infrastructure/redis/redis.client';
+import { rabbitmqClient } from './infrastructure/rabbitmq/rabbitmq.client';
+import { errorMiddleware, notFoundMiddleware } from './middleware/error.middleware';
+import { authRouter } from './modules/auth/auth.routes';
+import { urlRouter } from './modules/urls/url.routes';
+import { redirectRouter } from './modules/urls/redirect.routes';
+import { analyticsRouter } from './modules/analytics/analytics.routes';
+import { setupSwagger } from './config/swagger';
+import { logger } from './config/logger';
+import { Request, Response, NextFunction } from 'express';
+
+const app = createApp();
+
+// Lazy initialization middleware
+let initialized = false;
+
+app.use(async (_req: Request, _res: Response, next: NextFunction) => {
+  if (!initialized) {
+    try { await connectDatabase(); } catch (err) { logger.error({ err }, 'DB connect failed'); }
+    try { await redisClient.connect(); } catch { logger.warn('Redis unavailable'); }
+    try { await rabbitmqClient.connect(); } catch { logger.warn('RabbitMQ unavailable'); }
+    initialized = true;
+  }
+  next();
+});
+
+// Set up Swagger docs
+setupSwagger(app);
+
+// Register API routes
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/urls', urlRouter);
+app.use('/api/v1/urls', analyticsRouter);
+
+// Public redirect
+app.use('/', redirectRouter);
+
+// Error handling
+app.use(notFoundMiddleware);
+app.use(errorMiddleware);
+
+export default app;
