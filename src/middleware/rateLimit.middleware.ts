@@ -25,13 +25,13 @@ function createRateLimiter(config: RateLimitConfig, failClosed = false) {
     const client = redisClient.getClient();
 
     if (!client) {
-      if (failClosed) {
-        logger.warn('Rate limiter: Redis unavailable, failing closed for security');
+      // If Redis was never configured (no real URL), always fail open
+      if (!redisClient.isReady() && failClosed && redisClient.wasEverConnected()) {
+        logger.warn('Rate limiter: Redis went down, failing closed for security');
         next(new RateLimitError('Service temporarily unavailable. Please try again later.'));
         return;
       }
-      // Fail open — allow the request through
-      logger.warn('Rate limiter: Redis unavailable, failing open');
+      // Redis not configured or fail-open policy — allow the request
       next();
       return;
     }

@@ -5,6 +5,7 @@ import { logger } from '../../config/logger';
 class RedisClient {
   private client: Redis | null = null;
   private isAvailable = false;
+  private everConnected = false;
 
   async connect(): Promise<void> {
     try {
@@ -20,6 +21,7 @@ class RedisClient {
 
       this.client.on('connect', () => {
         this.isAvailable = true;
+        this.everConnected = true;
         logger.info('Connected to Redis');
       });
 
@@ -54,6 +56,10 @@ class RedisClient {
 
   isReady(): boolean {
     return this.isAvailable;
+  }
+
+  wasEverConnected(): boolean {
+    return this.everConnected;
   }
 
   async disconnect(): Promise<void> {
