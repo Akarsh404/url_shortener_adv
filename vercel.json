@@ -1,18 +1,15 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "dist/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
+  "buildCommand": "npx prisma generate && npm run build",
+  "outputDirectory": ".",
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30
     }
-  ],
-  "routes": [
-    { "src": "/app/(.*)", "dest": "/public/$1" },
-    { "src": "/app/?$", "dest": "/public/index.html" },
-    { "src": "/(.*)", "dest": "/dist/index.js" }
+  },
+  "rewrites": [
+    { "source": "/app/(.*)", "destination": "/public/$1" },
+    { "source": "/app", "destination": "/public/index.html" },
+    { "source": "/(.*)", "destination": "/api" }
   ]
 }
