@@ -63,6 +63,22 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/urls', urlRouter);
 app.use('/api/v1/urls', analyticsRouter);
 
+// Root route — API info
+app.get('/', (_req: Request, res: Response) => {
+  res.json({
+    name: 'Shortify',
+    version: '1.0.0',
+    description: 'Production-quality URL shortener API',
+    docs: '/docs',
+    app: '/app/',
+    health: '/health',
+    api: {
+      auth: '/api/v1/auth',
+      urls: '/api/v1/urls',
+    },
+  });
+});
+
 // Public redirect
 app.use('/', redirectRouter);
 
